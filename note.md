@@ -2,6 +2,11 @@
 n5TjyGab7Xyrw4fPx0n7
 ubuntu22.04
 
+
+<!-- 打包 -->
+pyinstaller --onefile --windowed --hidden-import=comtypes --hidden-import=comtypes.stream --add-data "logo.ico;." --icon=logo.ico  --name=账号管理系统 vmq管理.py
+
+
 <!-- 查看日志 -->
 tail -f /var/log/gunicorn/error.log
 tail -f /var/log/gunicorn/access.log

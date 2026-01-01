@@ -2,6 +2,15 @@
 n5TjyGab7Xyrw4fPx0n7
 ubuntu22.04
 
+<!-- 云机 -->
+18184693790
+Asdasd11.
+
+
+
+19317342383    
+Qwe123123++
+
 
 <!-- 打包 -->
 pyinstaller --onefile --windowed --hidden-import=comtypes --hidden-import=comtypes.stream --add-data "logo.ico;." --icon=logo.ico  --name=账号管理系统 vmq管理.py

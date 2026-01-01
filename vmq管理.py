@@ -96,6 +96,20 @@ class AccountManagerGUI:
         # 未使用卡片
         self.unused_card = self.create_stat_card(stats_frame, "未使用", "0", SUCCESS)
         self.unused_card.grid(row=0, column=2, padx=(0, 10), sticky="nsew")
+        
+        # ===== 操作按钮区域 =====
+        action_frame = ttk.Frame(main_frame)
+        action_frame.pack(fill=X, pady=(0, 20))
+        
+        self.export_btn = ttk.Button(
+            action_frame,
+            text="导出数据",
+            bootstyle=INFO,
+            command=self.export_data,
+            width=15
+        )
+        self.export_btn.pack(side=LEFT)
+        
         # ===== 添加账号区域 =====
         add_frame = ttk.Labelframe(main_frame, text="批量添加账号", padding=15)
         add_frame.pack(fill=X, pady=(0, 20))
@@ -239,6 +253,71 @@ class AccountManagerGUI:
     def auto_refresh_stats(self):
         self.fetch_stats()
         self.root.after(REFRESH_INTERVAL, self.auto_refresh_stats)
+
+    def export_data(self):
+        """导出数据到txt文件"""
+        self.export_btn.config(state=DISABLED, text="导出中...")
+        self.log("正在导出数据，请稍候...")
+        self.root.update_idletasks()
+        
+        threading.Thread(target=self._export_data_thread, daemon=True).start()
+
+    def _export_data_thread(self):
+        """导出数据的后台线程"""
+        try:
+            response = requests.get(f"{BASE_URL}/export", timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                accounts_data = data.get('data', [])
+                total = data.get('total', 0)
+                
+                if total == 0:
+                    self.root.after(0, lambda: messagebox.showinfo("提示", "数据库中没有数据可导出", parent=self.root))
+                    self.log("导出失败: 数据库中没有数据")
+                else:
+                    # 生成文件名（当天时间）
+                    today = datetime.now().strftime("%Y-%m-%d")
+                    filename = f"数据导出_{today}.txt"
+                    
+                    # 获取保存路径（exe同级目录或脚本同级目录）
+                    save_path = get_config_path(filename)
+                    
+                    # 写入文件
+                    with open(save_path, 'w', encoding='utf-8') as f:
+                        # 写入表头
+                        f.write("=" * 80 + "\n")
+                        f.write(f"数据导出时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                        f.write(f"总记录数: {total}\n")
+                        f.write("=" * 80 + "\n\n")
+                        
+                        # 写入数据
+                        for idx, acc in enumerate(accounts_data, 1):
+                            # f.write(f"记录 {idx}:\n")
+                            # f.write(f"  ID: {acc.get('id', 'N/A')}\n")
+                            f.write(f"{acc.get('account', 'N/A')}\n")
+                            # f.write(f"  状态: {acc.get('status', 'N/A')}\n")
+                            # f.write(f"  创建时间: {acc.get('created_at', 'N/A')}\n")
+                            # f.write(f"  提取人: {acc.get('extracted_by', 'N/A') or 'N/A'}\n")
+                            # f.write(f"  提取时间: {acc.get('extracted_at', 'N/A') or 'N/A'}\n")
+                            # f.write("-" * 80 + "\n")
+                    
+                    self.log(f"数据导出成功！共导出 {total} 条记录")
+                    self.log(f"文件保存位置: {save_path}")
+                    self.root.after(0, lambda: messagebox.showinfo(
+                        "导出成功", 
+                        f"数据导出成功！\n共导出 {total} 条记录\n\n文件保存位置:\n{save_path}",
+                        parent=self.root
+                    ))
+            else:
+                error = response.json().get("error", "未知错误")
+                self.log(f"导出失败: {error}")
+                self.root.after(0, lambda: messagebox.showerror("导出失败", f"导出失败: {error}", parent=self.root))
+        except Exception as e:
+            error_msg = str(e)
+            self.log(f"导出异常: {error_msg}")
+            self.root.after(0, lambda: messagebox.showerror("导出异常", f"导出时发生异常: {error_msg}", parent=self.root))
+        finally:
+            self.root.after(0, lambda: self.export_btn.config(state=NORMAL, text="导出数据"))
 
 
 if __name__ == "__main__":

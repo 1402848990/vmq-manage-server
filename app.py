@@ -154,6 +154,36 @@ def extract_accounts():
     finally:
         session.close()
 
+# 导出数据接口
+@app.route('/export', methods=['GET'])
+def export_data():
+    session = SessionLocal()
+    try:
+        # 查询所有账号数据
+        accounts = session.query(Account).order_by(Account.id).all()
+        
+        # 将数据转换为列表格式
+        data_list = []
+        for acc in accounts:
+            data_list.append({
+                "id": acc.id,
+                "account": acc.account,
+                "status": acc.status,
+                "created_at": acc.created_at.isoformat() if acc.created_at else None,
+                "extracted_by": acc.extracted_by,
+                "extracted_at": acc.extracted_at.isoformat() if acc.extracted_at else None
+            })
+        
+        return jsonify({
+            "total": len(data_list),
+            "data": data_list
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        session.close()
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5500, debug=True)
